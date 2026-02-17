@@ -11,8 +11,10 @@ jobs:
     env:
       DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
       CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+
       CHECK_INTERVAL_MINUTES: ${{ vars.CHECK_INTERVAL_MINUTES || "10" }}
       RECENT_WINDOW_MINUTES: ${{ vars.RECENT_WINDOW_MINUTES || vars.CHECK_INTERVAL_MINUTES || "10" }}
+      CHECK_INTERVAL_MINUTES: ${{ vars.CHECK_INTERVAL_MINUTES }}
       RUN_ONCE: "true"
     steps:
       - name: Checkout
