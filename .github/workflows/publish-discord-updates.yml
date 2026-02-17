@@ -1,0 +1,39 @@
+name: Publicar artigos atualizados no Discord
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/10 * * * *'
+
+jobs:
+  publish-updates:
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+      CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+      CHECK_INTERVAL_MINUTES: ${{ vars.CHECK_INTERVAL_MINUTES }}
+      RUN_ONCE: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Validar variáveis obrigatórias
+        run: |
+          python - <<'PY'
+          import os
+          missing = [k for k in ("DISCORD_TOKEN", "CHANNEL_ID") if not os.getenv(k)]
+          if missing:
+              raise SystemExit(f"Faltam secrets obrigatórios: {', '.join(missing)}")
+          print("Secrets obrigatórios encontrados")
+          PY
+
+      - name: Executar bot (ciclo único)
+        run: python src/bot.py
