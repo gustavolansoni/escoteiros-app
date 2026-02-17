@@ -16,11 +16,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger("discord-help-bot")
 
+
+def read_int_env(name: str, default: int) -> int:
+    raw_value = os.getenv(name)
+    if raw_value is None or raw_value.strip() == "":
+        return default
+
+    try:
+        return int(raw_value)
+    except ValueError:
+        logger.warning("Valor inválido para %s=%r. Usando default=%s", name, raw_value, default)
+        return default
+
+
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID_RAW = os.getenv("CHANNEL_ID")
-CHECK_INTERVAL_MINUTES = int(os.getenv("CHECK_INTERVAL_MINUTES", "10"))
+CHECK_INTERVAL_MINUTES = read_int_env("CHECK_INTERVAL_MINUTES", 10)
 RUN_ONCE = os.getenv("RUN_ONCE", "false").lower() in {"1", "true", "yes"}
-RECENT_WINDOW_MINUTES = int(os.getenv("RECENT_WINDOW_MINUTES", os.getenv("CHECK_INTERVAL_MINUTES", "10")))
+RECENT_WINDOW_MINUTES = read_int_env("RECENT_WINDOW_MINUTES", CHECK_INTERVAL_MINUTES)
 
 if not DISCORD_TOKEN:
     raise RuntimeError("Variável DISCORD_TOKEN não configurada")
@@ -28,7 +41,10 @@ if not DISCORD_TOKEN:
 if not CHANNEL_ID_RAW:
     raise RuntimeError("Variável CHANNEL_ID não configurada")
 
-CHANNEL_ID = int(CHANNEL_ID_RAW)
+try:
+    CHANNEL_ID = int(CHANNEL_ID_RAW)
+except ValueError as exc:
+    raise RuntimeError("Variável CHANNEL_ID deve ser um número inteiro válido") from exc
 
 
 class DiscordHelpBot(discord.Client):

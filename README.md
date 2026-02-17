@@ -15,6 +15,8 @@ Bot Discord para monitorar artigos do Discord Help Center e publicar atualizaç�
 - `CHANNEL_ID` (obrigatória): ID do canal onde publicar.
 - `CHECK_INTERVAL_MINUTES` (opcional): intervalo do scheduler local (default `10`).
 - `RECENT_WINDOW_MINUTES` (opcional): janela de artigos “recentes” usada quando não existe estado anterior (default: valor de `CHECK_INTERVAL_MINUTES`).
+
+> Se `CHECK_INTERVAL_MINUTES` ou `RECENT_WINDOW_MINUTES` vierem vazios nas Variables do GitHub, o bot aplica fallback automático para valores padrão (10 minutos / intervalo).
 - `RUN_ONCE` (opcional): quando `true`, roda um ciclo e encerra (ideal para Actions).
 
 ## Comportamento anti-spam (importante)
