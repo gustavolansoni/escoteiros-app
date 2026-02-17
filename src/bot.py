@@ -1,5 +1,6 @@
 import logging
 import os
+from typing import Optional
 
 import aiohttp
 import discord
@@ -18,6 +19,7 @@ logger = logging.getLogger("discord-help-bot")
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID_RAW = os.getenv("CHANNEL_ID")
 CHECK_INTERVAL_MINUTES = int(os.getenv("CHECK_INTERVAL_MINUTES", "10"))
+RUN_ONCE = os.getenv("RUN_ONCE", "false").lower() in {"1", "true", "yes"}
 
 if not DISCORD_TOKEN:
     raise RuntimeError("Variável DISCORD_TOKEN não configurada")
@@ -34,8 +36,8 @@ class DiscordHelpBot(discord.Client):
         super().__init__(intents=intents)
         self.tree = app_commands.CommandTree(self)
         self.store = LastSeenStore()
-        self.http_session: aiohttp.ClientSession | None = None
-        self.help_client: DiscordHelpCenterClient | None = None
+        self.http_session: Optional[aiohttp.ClientSession] = None
+        self.help_client: Optional[DiscordHelpCenterClient] = None
 
     async def setup_hook(self) -> None:
         self.http_session = aiohttp.ClientSession()
@@ -54,8 +56,15 @@ class DiscordHelpBot(discord.Client):
             await interaction.followup.send("Artigo mais recente publicado com sucesso.")
 
     async def on_ready(self):
-        await self.tree.sync()
         logger.info("Bot conectado como %s", self.user)
+
+        if RUN_ONCE:
+            logger.info("RUN_ONCE ativo: executando um único ciclo e encerrando")
+            await run_check_cycle()
+            await self.close()
+            return
+
+        await self.tree.sync()
         if not periodic_check.is_running():
             periodic_check.start()
 
@@ -87,9 +96,8 @@ class DiscordHelpBot(discord.Client):
 bot = DiscordHelpBot()
 
 
-@tasks.loop(minutes=CHECK_INTERVAL_MINUTES)
-async def periodic_check():
-    logger.info("Iniciando ciclo de checagem automática")
+async def run_check_cycle() -> None:
+    logger.info("Iniciando ciclo de checagem")
 
     if not bot.help_client:
         logger.warning("Cliente da API ainda não disponível")
@@ -123,6 +131,11 @@ async def periodic_check():
         except Exception as exc:
             logger.exception("Falha ao publicar artigo %s: %s", article.article_id, exc)
             break
+
+
+@tasks.loop(minutes=CHECK_INTERVAL_MINUTES)
+async def periodic_check():
+    await run_check_cycle()
 
 
 @periodic_check.before_loop
