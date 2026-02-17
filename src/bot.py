@@ -7,7 +7,7 @@ import discord
 from discord import app_commands
 from discord.ext import tasks
 
-from discord_help_center import DiscordHelpCenterClient, filter_articles_newer_than
+from discord_help_center import DiscordHelpCenterClient, filter_articles_newer_than, filter_recent_articles
 from state_store import LastSeenStore
 
 logging.basicConfig(
@@ -20,6 +20,7 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 CHANNEL_ID_RAW = os.getenv("CHANNEL_ID")
 CHECK_INTERVAL_MINUTES = int(os.getenv("CHECK_INTERVAL_MINUTES", "10"))
 RUN_ONCE = os.getenv("RUN_ONCE", "false").lower() in {"1", "true", "yes"}
+RECENT_WINDOW_MINUTES = int(os.getenv("RECENT_WINDOW_MINUTES", os.getenv("CHECK_INTERVAL_MINUTES", "10")))
 
 if not DISCORD_TOKEN:
     raise RuntimeError("Variável DISCORD_TOKEN não configurada")
@@ -112,11 +113,25 @@ async def run_check_cycle() -> None:
         logger.exception("Falha ao ler API do Help Center: %s", exc)
         return
 
-    new_articles = filter_articles_newer_than(
-        all_articles,
-        last_updated_at=last_seen.get("updated_at"),
-        last_article_id=last_seen.get("article_id"),
-    )
+    last_updated_at = last_seen.get("updated_at")
+    last_article_id = last_seen.get("article_id")
+
+    if last_updated_at:
+        new_articles = filter_articles_newer_than(
+            all_articles,
+            last_updated_at=last_updated_at,
+            last_article_id=last_article_id,
+        )
+    else:
+        new_articles = filter_recent_articles(
+            all_articles,
+            recent_minutes=RECENT_WINDOW_MINUTES,
+        )
+        logger.info(
+            "Sem estado anterior. Aplicando janela de recentes: últimos %s minutos (%s artigos)",
+            RECENT_WINDOW_MINUTES,
+            len(new_articles),
+        )
 
     if not new_articles:
         logger.info("Nenhum artigo novo para publicar")

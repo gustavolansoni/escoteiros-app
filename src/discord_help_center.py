@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 import aiohttp
@@ -115,6 +115,18 @@ def sort_articles_by_updated_desc(articles: List[HelpCenterArticle]) -> List[Hel
     )
 
 
+def filter_recent_articles(
+    articles: List[HelpCenterArticle],
+    *,
+    recent_minutes: int,
+    now_utc: Optional[datetime] = None,
+) -> List[HelpCenterArticle]:
+    reference_now = now_utc or datetime.now(timezone.utc)
+    cutoff = reference_now - timedelta(minutes=recent_minutes)
+    recent = [article for article in articles if article.updated_datetime() >= cutoff]
+    return sort_articles_by_updated_desc(recent)
+
+
 def filter_articles_newer_than(
     articles: List[HelpCenterArticle],
     *,
@@ -122,7 +134,7 @@ def filter_articles_newer_than(
     last_article_id: Optional[int],
 ) -> List[HelpCenterArticle]:
     if not last_updated_at:
-        return sort_articles_by_updated_desc(articles)
+        return []
 
     last_dt = datetime.fromisoformat(last_updated_at.replace("Z", "+00:00"))
     last_id = last_article_id or 0
