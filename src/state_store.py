@@ -11,17 +11,17 @@ class LastSeenStore:
 
     def load(self) -> Dict[str, Optional[str]]:
         if not self.state_path.exists():
-            return {"article_id": None, "updated_at": None}
+            return {"article_id": None, "edited_at": None}
 
         raw = json.loads(self.state_path.read_text(encoding="utf-8"))
         return {
             "article_id": raw.get("article_id"),
-            "updated_at": raw.get("updated_at"),
+            "edited_at": raw.get("edited_at"),
         }
 
-    def save(self, article_id: int, updated_at: str) -> None:
+    def save(self, article_id: int, edited_at: str) -> None:
         self.state_path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {"article_id": article_id, "updated_at": updated_at}
+        payload = {"article_id": article_id, "edited_at": edited_at}
         self.state_path.write_text(
             json.dumps(payload, indent=2, ensure_ascii=False),
             encoding="utf-8",
