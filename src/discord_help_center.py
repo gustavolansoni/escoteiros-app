@@ -14,7 +14,7 @@ class HelpCenterArticle:
     article_id: int
     title: str
     html_url: str
-    updated_at: str
+    edited_at: str
 
     @classmethod
     def from_api(cls, payload: Dict[str, Any]) -> "HelpCenterArticle":
@@ -22,11 +22,11 @@ class HelpCenterArticle:
             article_id=payload["id"],
             title=payload["title"],
             html_url=payload["html_url"],
-            updated_at=payload["updated_at"],
+            edited_at=payload["edited_at"],
         )
 
     def updated_datetime(self) -> datetime:
-        return datetime.fromisoformat(self.updated_at.replace("Z", "+00:00"))
+        return datetime.fromisoformat(self.edited_at.replace("Z", "+00:00"))
 
 
 class DiscordHelpCenterClient:
@@ -130,13 +130,13 @@ def filter_recent_articles(
 def filter_articles_newer_than(
     articles: List[HelpCenterArticle],
     *,
-    last_updated_at: Optional[str],
+    last_edited_at: Optional[str],
     last_article_id: Optional[int],
 ) -> List[HelpCenterArticle]:
-    if not last_updated_at:
+    if not last_edited_at:
         return []
 
-    last_dt = datetime.fromisoformat(last_updated_at.replace("Z", "+00:00"))
+    last_dt = datetime.fromisoformat(last_edited_at.replace("Z", "+00:00"))
     last_id = last_article_id or 0
 
     fresh = [
